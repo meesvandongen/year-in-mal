@@ -1,0 +1,20 @@
+name = "mal"
+compatibility_date = "2023-01-01"
+
+[vars]
+AUTH_URL = "https://myanimelist.net/v1/oauth2/authorize"
+TOKEN_URL = "https://myanimelist.net/v1/oauth2/token"
+API_URL = "https://api.myanimelist.net/v2"
+
+# [[kv_namespaces]]
+# binding = "MY_KV_NAMESPACE"
+# id = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+# [[r2_buckets]]
+# binding = "MY_BUCKET"
+# bucket_name = "my-bucket"
+
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "my-database"
+# database_id = ""
