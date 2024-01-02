@@ -3,6 +3,7 @@ import {
   Card,
   CardFooter,
   CardHeader,
+  Input,
   Link,
   NextUIProvider,
 } from "@nextui-org/react";
@@ -14,6 +15,7 @@ import "swiper/css";
 import "swiper/css/effect-cards";
 import "swiper/css/pagination";
 import { ArrowDown } from "./arrow-down";
+import { useState } from "react";
 
 function filterCompletedByUser(anime: AnimeListItem) {
   return anime.list_status.status === "completed";
@@ -224,10 +226,14 @@ function filterRankLowerThan(rank: number) {
 }
 
 export function Wrapped({ data }: { data: Array<AnimeListItem> }) {
+  const currentYear = new Date().getFullYear();
+  const [yearToEvaluate, setYearToEvaluate] = useState(
+    new Date().getMonth() === 11 ? currentYear : currentYear - 1
+  );
   const navigate = useNavigate();
 
   const initialFiltered = data
-    .filter(filterUpdatedInYear(2023))
+    .filter(filterUpdatedInYear(yearToEvaluate))
     .filter(filterNoMusic);
 
   const studiosCompletedAnime = initialFiltered
@@ -301,10 +307,17 @@ export function Wrapped({ data }: { data: Array<AnimeListItem> }) {
           clickable: true,
         }}
         modules={[Pagination]}
+        key={yearToEvaluate}
       >
         <SwiperSlide className="bg-gradient-to-t from-blue-900 to-blue-800 flex flex-col gap-8">
-          <h1 className="text-4xl text-blue-100 font-bold">
-            Your MAL wrapped for 2023
+          <h1 className="text-4xl text-blue-100 font-bold flex items-center gap-4">
+            Your MAL wrapped for{" "}
+            <Input
+              value={yearToEvaluate.toString()}
+              onChange={(e) => setYearToEvaluate(parseInt(e.target.value))}
+              type="number"
+              className="inline-block w-20"
+            />
           </h1>
         </SwiperSlide>
 
