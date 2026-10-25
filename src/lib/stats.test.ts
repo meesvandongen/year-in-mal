@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vite-plus/test";
 import { createDemoList } from "../demo/demo";
-import { activityDate, availableYears, defaultYear, minutesWatched, reviewYear } from "./stats";
+import { formatLag } from "./format";
+import {
+  activityDate,
+  airingLag,
+  availableYears,
+  defaultYear,
+  minutesWatched,
+  reviewYear,
+} from "./stats";
 import type { Anime, ListEntry, ListStatus } from "./types";
 
 let nextId = 1;
@@ -166,6 +174,84 @@ describe("reviewYear", () => {
     expect(empty.totals.meanScore).toBeUndefined();
     expect(empty.months.busiest).toBeUndefined();
     expect(empty.favourites).toEqual([]);
+  });
+});
+
+describe("airingLag", () => {
+  it("counts days from the last episode airing to finishing", () => {
+    expect(
+      airingLag(
+        entry({ start_date: "2025-01-05", end_date: "2025-03-30" }, { finish_date: "2025-04-09" }),
+      ),
+    ).toBe(10);
+  });
+
+  it("falls back to the premiere for anime without an end date", () => {
+    expect(airingLag(entry({ start_date: "2025-01-01" }, { finish_date: "2025-01-31" }))).toBe(30);
+  });
+
+  it("counts watching along as no lag at all", () => {
+    expect(airingLag(entry({ end_date: "2025-03-30" }, { finish_date: "2025-03-28" }))).toBe(0);
+  });
+
+  it("needs an air date", () => {
+    expect(airingLag(entry({}, { finish_date: "2025-03-28" }))).toBeUndefined();
+  });
+});
+
+describe("airing lag over the years", () => {
+  const finished = (aired: string, finish: string) =>
+    entry({ start_date: aired, end_date: aired }, { finish_date: finish });
+  const list = [
+    // 2023: ten, twenty and thirty days late.
+    finished("2023-01-01", "2023-01-11"),
+    finished("2023-01-01", "2023-01-21"),
+    finished("2023-01-01", "2023-01-31"),
+    // 2024: too few to tell.
+    finished("2024-01-01", "2024-02-01"),
+    // 2025: a fresh one, two older ones and a classic.
+    finished("2025-02-01", "2025-02-11"),
+    finished("2024-01-01", "2025-01-01"),
+    finished("2022-01-01", "2025-01-01"),
+    finished("1998-04-01", "2025-06-01"),
+    entry({}, { finish_date: "2025-07-01" }),
+  ];
+  const { lag } = reviewYear(list, 2025);
+
+  it("takes the median of the year", () => {
+    expect(lag.median).toBe((366 + 1096) / 2);
+  });
+
+  it("ranks the freshest first", () => {
+    expect(lag.ranking.map((e) => airingLag(e))).toEqual([10, 366, 1096, 9923]);
+  });
+
+  it("buckets how long you waited", () => {
+    expect(lag.buckets.map((bucket) => bucket.value)).toEqual([1, 0, 2, 1]);
+  });
+
+  it("tracks the years with enough data", () => {
+    expect(lag.history.map(({ year, median }) => [year, median])).toEqual([
+      [2023, 20],
+      [2025, (366 + 1096) / 2],
+    ]);
+  });
+});
+
+describe("formatLag", () => {
+  it("picks a sensible unit", () => {
+    expect(formatLag(1)).toBe("1 day");
+    expect(formatLag(20)).toBe("3 weeks");
+    expect(formatLag(120)).toBe("4 months");
+    expect(formatLag(365)).toBe("1 year");
+    expect(formatLag(913)).toBe("2.5 years");
+    expect(formatLag(4350)).toBe("12 years");
+  });
+
+  it("abbreviates", () => {
+    expect(formatLag(5, true)).toBe("5d");
+    expect(formatLag(120, true)).toBe("4mo");
+    expect(formatLag(913, true)).toBe("2.5y");
   });
 });
 

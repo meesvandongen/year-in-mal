@@ -1,4 +1,5 @@
 import { Dropped, Formats, Genres, Studios } from "./Breakdown";
+import { CatchUp } from "./CatchUp";
 import { Bookends, Crowd, Era, Gems, Length, Popularity } from "./Contrasts";
 import { Intro } from "./Intro";
 import { Outro } from "./Outro";
@@ -91,6 +92,13 @@ export const CHAPTERS: ChapterDefinition[] = [
       differ(r.era.oldest, r.era.newest) &&
       r.era.oldest!.node.start_date?.slice(0, 4) !== r.era.newest!.node.start_date?.slice(0, 4),
     render: (p) => <Era {...p} />,
+  },
+  {
+    id: "catch-up",
+    label: "Catching up",
+    hue: 155,
+    when: (r) => r.lag.ranking.length >= 3,
+    render: (p) => <CatchUp {...p} />,
   },
   {
     id: "length",

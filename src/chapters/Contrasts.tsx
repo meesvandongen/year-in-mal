@@ -1,5 +1,6 @@
 import { Chapter, Em } from "../components/Chapter";
 import { Duel } from "../components/Duel";
+import { SeeAll } from "../components/Sheet";
 import {
   formatCompact,
   formatDuration,
@@ -13,6 +14,10 @@ import type { ListEntry } from "../lib/types";
 import type { ChapterProps } from "./types";
 
 const title = (entry: ListEntry) => <strong className="text-white">{entry.node.title}</strong>;
+
+const highlight = (text: string) => (
+  <span className="font-display font-bold text-accent tabular-nums">{text}</span>
+);
 
 export function Gems({ chapter, review }: ChapterProps) {
   const gem = review.hiddenGem;
@@ -108,6 +113,16 @@ export function Popularity({ chapter, review }: ChapterProps) {
           stat: `${formatCompact(members(least))} members`,
         }}
       />
+      <SeeAll
+        label="See all by popularity"
+        title="By popularity"
+        description="How many MAL users have each anime on their list."
+        ranked
+        items={review.popularity.ranking.map((entry) => ({
+          entry,
+          aside: highlight(formatCompact(members(entry))),
+        }))}
+      />
     </Chapter>
   );
 }
@@ -143,6 +158,16 @@ export function Crowd({ chapter, review }: ChapterProps) {
           entry: disliked,
           stat: `MAL ${formatScore(disliked.node.mean ?? 0)}`,
         }}
+      />
+      <SeeAll
+        label="See all by MAL score"
+        title="By MAL score"
+        description="The average score MAL users give each anime."
+        ranked
+        items={review.crowd.ranking.map((entry) => ({
+          entry,
+          aside: highlight(formatScore(entry.node.mean ?? 0)),
+        }))}
       />
     </Chapter>
   );
@@ -181,6 +206,16 @@ export function Bookends({ chapter, review }: ChapterProps) {
           stat: formatShortDate(activityDate(last)),
         }}
       />
+      <SeeAll
+        label="See the whole year"
+        title={`${review.year}, in order`}
+        description="Everything you finished, from first to last."
+        ranked
+        items={review.completed.toReversed().map((entry) => ({
+          entry,
+          aside: highlight(formatShortDate(activityDate(entry))),
+        }))}
+      />
     </Chapter>
   );
 }
@@ -210,6 +245,15 @@ export function Era({ chapter, review }: ChapterProps) {
         separator="→"
         left={{ label: "Oldest", entry: oldest, stat: `Aired ${from}` }}
         right={{ label: "Newest", entry: newest, stat: `Aired ${to}` }}
+      />
+      <SeeAll
+        label="See all by air date"
+        title="Oldest to newest"
+        description="When each anime started airing."
+        items={review.era.ranking.map((entry) => ({
+          entry,
+          aside: highlight(startYear(entry.node) ?? ""),
+        }))}
       />
     </Chapter>
   );
@@ -246,6 +290,16 @@ export function Length({ chapter, review }: ChapterProps) {
           entry: shortest,
           stat: formatDuration(runtime(shortest) ?? 0),
         }}
+      />
+      <SeeAll
+        label="See all by length"
+        title="Longest to shortest"
+        description="Total runtime of every episode."
+        ranked
+        items={review.length.ranking.map((entry) => ({
+          entry,
+          aside: highlight(formatDuration(runtime(entry) ?? 0)),
+        }))}
       />
     </Chapter>
   );

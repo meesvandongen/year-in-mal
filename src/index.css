@@ -64,6 +64,11 @@
     }
   }
 
+  /* Keep the story still behind an open sheet. */
+  :root:has(dialog[open]) {
+    overflow: hidden;
+  }
+
   body {
     @apply bg-ink font-sans text-white antialiased;
     font-optical-sizing: auto;

@@ -67,11 +67,67 @@ function average(values: number[]): number | undefined {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
-function startTime(entry: ListEntry): number | undefined {
-  const date = entry.node.start_date;
+function median(values: number[]): number | undefined {
+  if (values.length === 0) return undefined;
+  const sorted = values.toSorted((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1]! + sorted[middle]!) / 2;
+}
+
+/** Parses MAL's `YYYY-MM-DD`, `YYYY-MM` or `YYYY` dates. */
+function parseDate(date?: string): number | undefined {
   if (!date) return undefined;
   const [year, month = 1, day = 1] = date.split("-").map(Number);
   return year ? new Date(year, month - 1, day).getTime() : undefined;
+}
+
+const startTime = (entry: ListEntry) => parseDate(entry.node.start_date);
+
+const DAY = 24 * 60 * 60 * 1000;
+
+/**
+ * Days between an anime's last episode airing (or its premiere, for a movie
+ * without an end date) and the user finishing it. Watching along as it airs
+ * counts as 0.
+ */
+export function airingLag(entry: ListEntry): number | undefined {
+  const aired = parseDate(entry.node.end_date) ?? startTime(entry);
+  if (aired === undefined) return undefined;
+  return Math.max(0, Math.round((activityDate(entry).getTime() - aired) / DAY));
+}
+
+/** Upper bounds, in days, of the airing lag buckets. */
+export const LAG_BUCKETS = [
+  { label: "Within a season", max: 91 },
+  { label: "Within a year", max: 365 },
+  { label: "1–5 years", max: 5 * 365 },
+  { label: "5+ years", max: Infinity },
+] as const;
+
+/** A year needs this many anime with airing dates for its lag to mean much. */
+const MIN_LAG_SAMPLE = 3;
+
+export interface LagYear {
+  year: number;
+  /** Median airing lag in days. */
+  median: number;
+  count: number;
+}
+
+/** The typical airing lag of every year with enough completed anime, oldest first. */
+function lagHistory(list: ListEntry[]): LagYear[] {
+  const byYear = Map.groupBy(
+    list.filter((entry) => isCounted(entry) && isCompleted(entry)),
+    (entry) => activityDate(entry).getFullYear(),
+  );
+  return [...byYear]
+    .flatMap(([year, entries]) => {
+      const lags = entries.flatMap((entry) => airingLag(entry) ?? []);
+      return lags.length >= MIN_LAG_SAMPLE
+        ? [{ year, median: median(lags)!, count: lags.length }]
+        : [];
+    })
+    .toSorted((a, b) => a.year - b.year);
 }
 
 type Key = (entry: ListEntry) => number | undefined;
@@ -164,6 +220,13 @@ export function reviewYear(list: ListEntry[], year: number) {
     .toSorted((a, b) => b.meanScore! - a.meanScore!);
 
   const droppedByMean = rank(dropped, mean);
+  const rated = rank(scored, score, "desc", mean);
+  const byMembers = rank(completed, members);
+  const byMean = rank(completed, mean);
+  const byStart = rank(completed, startTime, "asc");
+  const byRuntime = rank(completed, runtime);
+  const byLag = rank(completed, airingLag, "asc");
+  const lags = byLag.map((entry) => airingLag(entry)!);
 
   return {
     year,
@@ -189,7 +252,8 @@ export function reviewYear(list: ListEntry[], year: number) {
       criticDelta:
         meanScore !== undefined && crowdMean !== undefined ? meanScore - crowdMean : undefined,
     },
-    favourites: rank(scored, score, "desc", mean).slice(0, 5),
+    rated,
+    favourites: rated.slice(0, 5),
     leastFavourites: rank(scored, score, "asc", mean).slice(0, 5),
     underrated: deltas
       .filter((pick) => pick.delta > 0)
@@ -200,11 +264,13 @@ export function reviewYear(list: ListEntry[], year: number) {
       .toSorted((a, b) => a.delta - b.delta)
       .slice(0, 5),
     popularity: {
-      most: rank(completed, members)[0],
+      ranking: byMembers,
+      most: byMembers[0],
       least: rank(completed, members, "asc")[0],
     },
     crowd: {
-      loved: rank(completed, mean)[0],
+      ranking: byMean,
+      loved: byMean[0],
       disliked: rank(completed, mean, "asc")[0],
     },
     hiddenGem: rank(
@@ -221,12 +287,25 @@ export function reviewYear(list: ListEntry[], year: number) {
       "asc",
     )[0],
     era: {
-      oldest: rank(completed, startTime, "asc")[0],
+      ranking: byStart,
+      oldest: byStart[0],
       newest: rank(completed, startTime)[0],
     },
     length: {
-      longest: rank(completed, runtime)[0],
+      ranking: byRuntime,
+      longest: byRuntime[0],
       shortest: rank(completed, runtime, "asc")[0],
+    },
+    lag: {
+      /** Freshest first. */
+      ranking: byLag,
+      /** Median days between an anime airing and the user finishing it. */
+      median: median(lags),
+      buckets: LAG_BUCKETS.map(({ label, max }, i) => ({
+        label,
+        value: lags.filter((lag) => lag <= max && lag > (LAG_BUCKETS[i - 1]?.max ?? -1)).length,
+      })),
+      history: lagHistory(list),
     },
     bookends: {
       first: completed.at(-1),

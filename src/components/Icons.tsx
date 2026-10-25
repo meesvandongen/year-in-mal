@@ -77,3 +77,15 @@ export const Sparkle = (props: SVGProps<SVGSVGElement>) => (
     <path d="M12 1.5c.5 5.6 4.9 10 10.5 10.5-5.6.5-10 4.9-10.5 10.5C11.5 16.9 7.1 12.5 1.5 12 7.1 11.5 11.5 7.1 12 1.5z" />
   </Icon>
 );
+
+export const Close = (props: SVGProps<SVGSVGElement>) => (
+  <Icon {...props}>
+    <path d="M18 6 6 18M6 6l12 12" />
+  </Icon>
+);
+
+export const ListIcon = (props: SVGProps<SVGSVGElement>) => (
+  <Icon {...props}>
+    <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
+  </Icon>
+);
