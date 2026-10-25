@@ -26,5 +26,47 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm run lint
+      # Formatting, lint and type checks.
+      - run: pnpm run check
+      - run: pnpm run test
       - run: pnpm run build
+
+  e2e:
+    runs-on: ubuntu-latest
+    # Only one run at a time touches the shared MyAnimeList test account.
+    concurrency:
+      group: e2e-mal-account
+      cancel-in-progress: false
+    env:
+      # The live suite needs an account and a MAL API client that allows the
+      # redirect URL http://localhost:8788/api/callback. Without them only the
+      # demo suite runs.
+      MAL_USERNAME: ${{ secrets.MAL_CLIENT_ID != '' && secrets.MAL_USERNAME || '' }}
+      MAL_PASSWORD: ${{ secrets.MAL_CLIENT_ID != '' && secrets.MAL_PASSWORD || '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm install -g corepack@latest && corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm run build
+      - name: Configure the Pages functions
+        env:
+          MAL_CLIENT_ID: ${{ secrets.MAL_CLIENT_ID }}
+          MAL_CLIENT_SECRET: ${{ secrets.MAL_CLIENT_SECRET }}
+        run: |
+          {
+            echo "CLIENT_ID=${MAL_CLIENT_ID:-unset}"
+            echo "CLIENT_SECRET=${MAL_CLIENT_SECRET:-unset}"
+            echo "COOKIE_SECRET=$(openssl rand -hex 32)"
+          } > .dev.vars
+      - run: pnpm run e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report
+          retention-days: 7

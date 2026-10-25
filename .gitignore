@@ -26,3 +26,8 @@ dist-ssr
 # wrangler
 .wrangler
 .dev.vars
+
+# Playwright
+test-results
+playwright-report
+blob-report

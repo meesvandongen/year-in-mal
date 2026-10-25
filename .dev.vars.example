@@ -1,0 +1,6 @@
+# Copy to .dev.vars for `pnpm run dev:functions`.
+# Create a MAL API client at https://myanimelist.net/apiconfig with the redirect
+# URL http://localhost:5173/api/callback (the Vite dev server proxies /api).
+CLIENT_ID=
+CLIENT_SECRET=
+COOKIE_SECRET=change-me-to-a-long-random-string
