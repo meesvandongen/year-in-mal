@@ -1,14 +1,13 @@
 allowBuilds:
-  "@swc/core": true
   esbuild: true
   workerd: true
 catalog:
   vite: npm:@voidzero-dev/vite-plus-core@1.4.0
   vite-plus: 1.4.0
 overrides:
-  vite@*: 'catalog:'
+  vite@*: "catalog:"
 peerDependencyRules:
   allowAny:
     - vite
   allowedVersions:
-    vite: '*'
+    vite: "*"

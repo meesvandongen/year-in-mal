@@ -1,37 +1,42 @@
 {
   "name": "year-in-mal",
+  "version": "1.0.0",
   "private": true,
-  "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vp dev",
-    "build": "tsc && vp build",
-    "lint": "vp lint",
+    "dev:functions": "wrangler pages dev --port 8788",
+    "build": "vp build",
     "preview": "vp preview",
-    "dev:functions": "wrangler pages dev ."
+    "check": "vp check",
+    "lint": "vp lint",
+    "fmt": "vp fmt",
+    "test": "vp test",
+    "demo-catalog": "vpx ./scripts/build-demo-catalog.ts",
+    "e2e": "playwright test"
   },
   "dependencies": {
-    "@nextui-org/react": "^2.2.9",
-    "framer-motion": "^10.16.16",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-router-dom": "^6.21.1",
-    "swiper": "^11.0.5",
-    "use-local-storage-state": "^19.1.0"
+    "@fontsource-variable/bricolage-grotesque": "^5.3.0",
+    "@fontsource-variable/inter": "^5.3.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20231218.0",
-    "@types/react": "^18.2.43",
-    "@types/react-dom": "^18.2.17",
-    "@vitejs/plugin-react-swc": "^4.3.3",
-    "autoprefixer": "^10.4.16",
-    "postcss": "^8.4.32",
-    "tailwindcss": "^3.4.0",
-    "typescript": "^5.2.2",
+    "@babel/core": "^8.0.9",
+    "@cloudflare/workers-types": "^5.20261001.1",
+    "@playwright/test": "1.63.0",
+    "@rolldown/plugin-babel": "^0.2.4",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^24.19.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "babel-plugin-react-compiler": "^1.0.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2",
     "vite": "catalog:",
-    "vite-plugin-run": "^0.9.1",
     "vite-plus": "catalog:",
-    "wrangler": "^3.22.1"
+    "wrangler": "^4.152.0"
   },
   "packageManager": "pnpm@12.15.0+sha512.b3951d6d6ff4a9f13dc7cf56cd28d2b8eb37dbcc9c68e52e1e1191873ea9f82a017287ab50baadc5ccc494f036c67c0e47eb13608c2fa36f47711b61ea128e61"
 }

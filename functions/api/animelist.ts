@@ -1,51 +1,51 @@
-import { Env } from "../env";
-import { getSignedCookie } from "../kukkii";
+import { json } from "../lib/http";
+import { API_URL, malGet } from "../lib/mal";
+import { withSession } from "../lib/session";
 
-export const onRequest: PagesFunction<Env> = async (c) => {
-  const access_token = await getSignedCookie(
-    c.request,
-    c.env.COOKIE_SECRET,
-    "access_token"
-  );
-  if (!access_token) {
-    return new Response("No access_token provided", { status: 400 });
-  }
+const FIELDS = [
+  "list_status",
+  "alternative_titles",
+  "start_date",
+  "end_date",
+  "genres",
+  "studios",
+  "media_type",
+  "status",
+  "mean",
+  "rank",
+  "num_list_users",
+  "num_episodes",
+  "average_episode_duration",
+  "nsfw",
+];
 
-  const url = new URL(`${c.env.API_URL}/users/@me/animelist`);
-  const parameters = new URLSearchParams({
+// The API returns at most 1000 entries per page; 20 pages covers any list.
+const MAX_PAGES = 20;
+
+interface Page {
+  data: unknown[];
+  paging?: { next?: string };
+}
+
+export const onRequestGet = withSession(async (token) => {
+  const url = new URL(`${API_URL}/users/@me/animelist`);
+  url.search = new URLSearchParams({
     limit: "1000",
     sort: "list_updated_at",
-    fields: [
-      // list status
-      "list_status",
-      // node
-      "end_date",
-      "genres",
-      "nsfw",
-      "num_list_users",
-      "num_scoring_users",
-      "rank",
-      "start_date",
-      "status",
-      "studios",
-      "media_type",
-      "mean",
-      "average_episode_duration",
-      "num_episodes",
-    ].join(","),
-  });
+    nsfw: "true",
+    fields: FIELDS.join(","),
+  }).toString();
 
-  url.search = parameters.toString();
+  const entries: unknown[] = [];
+  let next: string | undefined = url.toString();
+  for (let page = 0; next && page < MAX_PAGES; page++) {
+    const result: Page = await malGet<Page>(token, next);
+    entries.push(...result.data);
+    // Only ever follow links back to the MAL API with the visitor's token.
+    next = result.paging?.next?.startsWith(`${API_URL}/`) ? result.paging.next : undefined;
+  }
 
-  const res = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${access_token}`,
-    },
+  return json(entries, {
+    headers: { "cache-control": "private, no-store" },
   });
-  const json = await res.json<any>();
-  return new Response(JSON.stringify(json.data), {
-    headers: {
-      "content-type": "application/json",
-    },
-  });
-};
+});

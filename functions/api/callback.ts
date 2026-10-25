@@ -1,98 +1,38 @@
-import { Env } from "../env";
-import { getSignedCookie, deleteCookie, setSignedCookie } from "../kukkii";
+import type { Env } from "../lib/env";
+import { redirect } from "../lib/http";
+import { deleteCookie, getSignedCookie } from "../lib/kukkii";
+import { exchangeCode, type Tokens } from "../lib/mal";
+import { cookieOptions, writeTokens } from "../lib/session";
 
-export const onRequest: PagesFunction<Env> = async (c) => {
-  const { searchParams, origin } = new URL(c.request.url);
+export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
+  const { searchParams, origin } = new URL(request.url);
+
+  const finish = async (result: { tokens: Tokens } | { error: string }) => {
+    const response = redirect(
+      "error" in result ? `${origin}/?auth_error=${result.error}` : `${origin}/`,
+    );
+    deleteCookie(response.headers, "code_verifier", cookieOptions);
+    deleteCookie(response.headers, "oauth_state", cookieOptions);
+    if ("tokens" in result) {
+      await writeTokens(response.headers, result.tokens, env);
+    }
+    return response;
+  };
+
+  if (searchParams.has("error")) return finish({ error: "denied" });
 
   const code = searchParams.get("code");
-  if (!code) {
-    return new Response("No code provided", { status: 400 });
+  const [codeVerifier, state] = await Promise.all([
+    getSignedCookie(request, env.COOKIE_SECRET, "code_verifier"),
+    getSignedCookie(request, env.COOKIE_SECRET, "oauth_state"),
+  ]);
+  if (!code || !codeVerifier || !state) return finish({ error: "expired" });
+  if (searchParams.get("state") !== state) return finish({ error: "state" });
+
+  try {
+    const tokens = await exchangeCode(env, code, codeVerifier, `${origin}/api/callback`);
+    return await finish({ tokens });
+  } catch {
+    return finish({ error: "token" });
   }
-  const code_verifier = await getSignedCookie(
-    c.request,
-    c.env.COOKIE_SECRET,
-    "code_verifier"
-  );
-  if (!code_verifier) {
-    return new Response("No code_verifier provided", { status: 400 });
-  }
-
-  const response = new Response(undefined, {
-    status: 302,
-  });
-  deleteCookie(response.headers, "code_verifier");
-
-  const { access_token, expires_in, refresh_token } = await fetchToken(
-    c.env,
-    origin,
-    code,
-    code_verifier
-  );
-
-  await setSignedCookie(
-    response.headers,
-    "access_token",
-    access_token,
-    c.env.COOKIE_SECRET,
-    {
-      expires: new Date(Date.now() + expires_in * 1000),
-      httpOnly: true,
-      secure: true,
-    }
-  );
-  await setSignedCookie(
-    response.headers,
-    "refresh_token",
-    refresh_token,
-    c.env.COOKIE_SECRET,
-    {
-      expires: new Date(Date.now() + expires_in * 1000),
-      httpOnly: true,
-      secure: true,
-    }
-  );
-
-  response.headers.set("Location", `${origin}/`);
-
-  return response;
 };
-
-async function fetchToken(
-  env: Env,
-  origin: string,
-  code: string,
-  code_verifier: string
-) {
-  const body = new URLSearchParams({
-    client_id: env.CLIENT_ID,
-    client_secret: env.CLIENT_SECRET,
-    code,
-    code_verifier,
-    grant_type: "authorization_code",
-    redirect_uri: `${origin}/api/callback`,
-  });
-
-  const res = await fetch(env.TOKEN_URL, {
-    method: "POST",
-    body,
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-  });
-
-  if (!res.ok) {
-    throw new Error("Failed to fetch token");
-  }
-
-  const json = await res.json<{
-    access_token: string;
-    expires_in: number;
-    refresh_token: string;
-  }>();
-
-  if (!json.access_token || !json.expires_in || !json.refresh_token) {
-    throw new Error("Invalid token response");
-  }
-
-  return json;
-}

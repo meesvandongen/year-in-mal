@@ -15,24 +15,13 @@ export type CookieOptions = {
 const algorithm = { name: "HMAC", hash: "SHA-256" };
 
 async function getCryptoKey(secret: string | BufferSource): Promise<CryptoKey> {
-  const secretBuf =
-    typeof secret === "string" ? new TextEncoder().encode(secret) : secret;
-  return await crypto.subtle.importKey("raw", secretBuf, algorithm, false, [
-    "sign",
-    "verify",
-  ]);
+  const secretBuf = typeof secret === "string" ? new TextEncoder().encode(secret) : secret;
+  return await crypto.subtle.importKey("raw", secretBuf, algorithm, false, ["sign", "verify"]);
 }
 
-async function makeSignature(
-  value: string,
-  secret: string | BufferSource,
-): Promise<string> {
+async function makeSignature(value: string, secret: string | BufferSource): Promise<string> {
   const key = await getCryptoKey(secret);
-  const signature = await crypto.subtle.sign(
-    algorithm.name,
-    key,
-    new TextEncoder().encode(value),
-  );
+  const signature = await crypto.subtle.sign(algorithm.name, key, new TextEncoder().encode(value));
   // the returned base64 encoded signature will always be 44 characters long and end with one or two equal signs
   return btoa(String.fromCharCode(...new Uint8Array(signature)));
 }
@@ -54,7 +43,7 @@ async function verifySignature(
       signature,
       new TextEncoder().encode(value),
     );
-  } catch (e) {
+  } catch {
     return false;
   }
 }
@@ -80,10 +69,7 @@ export function parse(cookie: string, name?: string): Cookie {
     }
 
     const cookieName = pairStr.substring(0, valueStartPos).trim();
-    if (
-      (name && name !== cookieName) ||
-      !validCookieNameRegEx.test(cookieName)
-    ) {
+    if ((name && name !== cookieName) || !validCookieNameRegEx.test(cookieName)) {
       return parsedCookie;
     }
 
@@ -126,11 +112,7 @@ export async function parseSigned(
   return parsedCookie;
 }
 
-function _serialize(
-  name: string,
-  value: string,
-  opt: CookieOptions = {},
-): string {
+function _serialize(name: string, value: string, opt: CookieOptions = {}): string {
   let cookie = `${name}=${value}`;
 
   if (opt && typeof opt.maxAge === "number" && opt.maxAge >= 0) {
@@ -168,11 +150,7 @@ function _serialize(
   return cookie;
 }
 
-export function serialize(
-  name: string,
-  value: string,
-  opt: CookieOptions = {},
-): string {
+export function serialize(name: string, value: string, opt: CookieOptions = {}): string {
   value = encodeURIComponent(value);
   return _serialize(name, value, opt);
 }

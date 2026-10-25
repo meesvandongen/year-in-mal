@@ -1,31 +1,31 @@
+import babel from "@rolldown/plugin-babel";
+import tailwindcss from "@tailwindcss/vite";
+import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { defineConfig, lazyPlugins } from "vite-plus";
-import react from "@vitejs/plugin-react-swc";
 
-// https://vitejs.dev/config/
 export default defineConfig({
-  // The code is not formatter-managed; these options mirror the existing style.
-  fmt: { semi: true, singleQuote: false, printWidth: 80 },
+  fmt: {
+    ignorePatterns: ["dist/**", "src/demo/catalog.json", "pnpm-lock.yaml"],
+  },
   lint: {
     ignorePatterns: ["dist/**"],
     plugins: ["typescript", "oxc", "unicorn", "react"],
     jsPlugins: [{ name: "vite-plus", specifier: "vite-plus/oxlint-plugin" }],
     rules: {
       "vite-plus/prefer-vite-plus-imports": "error",
-      // Carried over from the previous ESLint config (react-hooks/recommended).
       "react/rules-of-hooks": "error",
       "react/exhaustive-deps": "warn",
     },
-    // Type errors are reported by `tsc` (TypeScript 5) in the build script; the
-    // linter's bundled TypeScript 7 flags the `swiper/css` side-effect imports.
-    options: { typeAware: true },
+    options: { typeAware: true, typeCheck: true },
   },
-  plugins: lazyPlugins(() => [react()]),
+  test: {
+    include: ["src/**/*.test.ts", "functions/**/*.test.ts"],
+  },
+  plugins: lazyPlugins(() => [react(), babel({ presets: [reactCompilerPreset()] }), tailwindcss()]),
   server: {
     proxy: {
-      "/api": {
-        target: "http://localhost:8788",
-        changeOrigin: false,
-      },
+      // `pnpm run dev:functions` serves the Cloudflare Pages functions.
+      "/api": { target: "http://localhost:8788", changeOrigin: false },
     },
   },
 });
