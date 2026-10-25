@@ -76,6 +76,7 @@ export function Story({ user, list, demo }: StoryProps) {
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (event.metaKey || event.ctrlKey || event.altKey) return;
+      if (document.querySelector("dialog[open]")) return;
       if ((event.target as HTMLElement).closest("input, select, textarea")) {
         return;
       }

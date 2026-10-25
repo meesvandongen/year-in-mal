@@ -8,9 +8,11 @@ interface EntryRowProps {
   /** Shown on the right, e.g. a score comparison. */
   aside?: ReactNode;
   index?: number;
+  /** Shown on the left, for rankings. */
+  rank?: number;
 }
 
-export function EntryRow({ entry, aside, index = 0 }: EntryRowProps) {
+export function EntryRow({ entry, aside, index = 0, rank }: EntryRowProps) {
   return (
     <li className="reveal" style={{ "--i": index }}>
       <a
@@ -19,6 +21,11 @@ export function EntryRow({ entry, aside, index = 0 }: EntryRowProps) {
         rel="noreferrer"
         className="group flex items-center gap-3 rounded-2xl p-2 transition hover:bg-white/5 sm:gap-4"
       >
+        {rank !== undefined && (
+          <span className="w-7 shrink-0 text-center font-display text-sm font-bold text-white/40 tabular-nums">
+            {rank}
+          </span>
+        )}
         <PosterImage
           entry={entry}
           size="medium"

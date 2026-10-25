@@ -1,7 +1,9 @@
 import { Chapter, Em } from "../components/Chapter";
 import { ColumnChart } from "../components/Charts";
 import { EntryRow } from "../components/EntryRow";
+import { Star } from "../components/Icons";
 import { Poster } from "../components/Poster";
+import { SeeAll } from "../components/Sheet";
 import { formatScore, formatSigned } from "../lib/format";
 import type { Pick } from "../lib/stats";
 import type { ChapterProps } from "./types";
@@ -46,6 +48,23 @@ export function Favourites({ chapter, review }: ChapterProps) {
           ))}
         </ol>
       </div>
+      {review.rated.length > review.favourites.length && (
+        <SeeAll
+          label={`See all ${review.rated.length} you scored`}
+          title={`Everything you scored in ${review.year}`}
+          description="Ties go to the one MAL rates higher."
+          ranked
+          items={review.rated.map((entry) => ({
+            entry,
+            aside: (
+              <span className="inline-flex items-center gap-1 font-display font-bold tabular-nums">
+                <Star className="text-accent" width="0.9em" height="0.9em" />
+                {entry.list_status.score}
+              </span>
+            ),
+          }))}
+        />
+      )}
     </Chapter>
   );
 }

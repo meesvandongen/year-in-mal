@@ -97,6 +97,45 @@ test.describe("demo story", () => {
     await expect(page.locator("#numbers")).toBeInViewport({ ratio: 0.5 });
   });
 
+  test("compares how far behind the broadcast you were", async ({ page }) => {
+    await openDemo(page);
+
+    const chapter = page.locator("#catch-up");
+    await expect(chapter.getByRole("heading", { name: /behind the broadcast$/ })).toBeAttached();
+    await expect(
+      chapter.getByRole("img", { name: /per year: .*2024 .*2025 .*2026/ }),
+    ).toBeAttached();
+  });
+
+  test("lists everything behind a highlight", async ({ page }) => {
+    await openDemo(page);
+
+    await page.locator("#popularity").scrollIntoViewIfNeeded();
+    await page.getByRole("button", { name: "See all by popularity" }).click();
+    const sheet = page.getByRole("dialog", { name: "By popularity" });
+    await expect(sheet).toBeVisible();
+    await expect(sheet.getByRole("listitem")).toHaveCount(46);
+
+    await page.keyboard.press("Escape");
+    await expect(sheet).toBeHidden();
+  });
+
+  test("shows the anime in a genre", async ({ page }) => {
+    await openDemo(page);
+
+    const genres = page.locator("#genres");
+    await genres.scrollIntoViewIfNeeded();
+    const top = genres.getByRole("button").first();
+    const name = (await top.innerText()).split("\n")[0]!.replace(/^\d+\s*/, "");
+    await top.click();
+    const sheet = page.getByRole("dialog", { name });
+    await expect(sheet).toBeVisible();
+    await expect(sheet.getByRole("listitem").first()).toBeVisible();
+
+    await sheet.getByRole("button", { name: "Close" }).click();
+    await expect(sheet).toBeHidden();
+  });
+
   test("opens the account menu", async ({ page }) => {
     await openDemo(page);
 
